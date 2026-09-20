@@ -1,0 +1,19 @@
+services:
+  lupus-cortex-api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: lupus-cortex-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_API_URL=${MODEL_API_URL:-}
+      - MODEL_API_KEY=${MODEL_API_KEY:-}
+      - EARTHDATA_WORKER_URL=${EARTHDATA_WORKER_URL:-}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
+      - FREE_DATA_RADIUS_M=${FREE_DATA_RADIUS_M:-5000}
+      - REQUEST_TIMEOUT_SECONDS=${REQUEST_TIMEOUT_SECONDS:-30}
+      - EARTHDATA_WORKER_TIMEOUT_SECONDS=${EARTHDATA_WORKER_TIMEOUT_SECONDS:-180}
