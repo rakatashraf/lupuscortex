@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NASA Earthdata CSV Downloader</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">NASA EARTHDATA TOOL</div>
+      <h1>Earthdata → CSV Downloader</h1>
+      <p>Search NASA collections, select a satellite product, filter by area and date, then download converted CSV data.</p>
+    </div>
+    <div id="health" class="status">Checking service…</div>
+  </header>
+
+  <main class="shell">
+    <section class="panel">
+      <div class="step">1</div>
+      <div class="panel-body">
+        <h2>Earthdata access</h2>
+        <p class="muted">Your Bearer token is sent only with your requests. It is not saved by this app.</p>
+        <div class="row token-row">
+          <label class="grow">Earthdata token
+            <input id="token" type="password" autocomplete="off" placeholder="Paste Earthdata Bearer token">
+          </label>
+          <button id="validateToken" class="secondary">Validate token</button>
+        </div>
+        <div id="tokenMessage" class="message"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="step">2</div>
+      <div class="panel-body">
+        <h2>What do you want?</h2>
+        <div class="grid two">
+          <label>Component / variable
+            <input id="component" placeholder="e.g. NO2, PM2.5, NDVI, soil moisture, precipitation">
+          </label>
+          <label>Satellite / platform filter
+            <input id="platformFilter" placeholder="e.g. Terra, Aqua, Sentinel-5P">
+          </label>
+          <label>Instrument filter
+            <input id="instrumentFilter" placeholder="e.g. MODIS, TROPOMI">
+          </label>
+          <label>Maximum collections
+            <input id="collectionLimit" type="number" min="1" max="100" value="40">
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="step">3</div>
+      <div class="panel-body">
+        <h2>Boundary box and date range</h2>
+        <div class="grid four">
+          <label>South<input id="south" type="number" step="any" value="23.68"></label>
+          <label>West<input id="west" type="number" step="any" value="90.30"></label>
+          <label>North<input id="north" type="number" step="any" value="23.90"></label>
+          <label>East<input id="east" type="number" step="any" value="90.55"></label>
+        </div>
+        <div class="grid two">
+          <label>Start date<input id="startDate" type="date"></label>
+          <label>End date<input id="endDate" type="date"></label>
+        </div>
+        <label class="check"><input id="fallbackLatest" type="checkbox" checked> If the selected dates contain no granules, use the most recent available granules for the same collection and area.</label>
+        <button id="searchCollections" class="primary">Search Earthdata</button>
+        <div id="searchMessage" class="message"></div>
+      </div>
+    </section>
+
+    <section id="collectionPanel" class="panel hidden">
+      <div class="step">4</div>
+      <div class="panel-body">
+        <div class="title-row">
+          <div>
+            <h2>Select a NASA collection</h2>
+            <p class="muted">Choose the scientifically appropriate product. Keyword matches can represent very different retrieval levels and resolutions.</p>
+          </div>
+          <span id="collectionCount" class="badge"></span>
+        </div>
+        <div id="collections" class="cards"></div>
+      </div>
+    </section>
+
+    <section id="granulePanel" class="panel hidden">
+      <div class="step">5</div>
+      <div class="panel-body">
+        <h2>Granules and CSV output</h2>
+        <div id="selectedCollection" class="selected-box"></div>
+        <div class="grid three">
+          <label>Maximum granules<input id="maxGranules" type="number" min="1" max="50" value="5"></label>
+          <label>Variable-name filters<input id="variableFilters" placeholder="optional, comma separated"></label>
+          <label>Row limit per variable<input id="maxRows" type="number" min="0" value="0"></label>
+        </div>
+        <div class="grid two">
+          <label>CSV file name<input id="outputName" placeholder="optional-output-name.csv"></label>
+          <div class="action-box">
+            <button id="findGranules" class="secondary">Find granules</button>
+            <button id="downloadCsv" class="primary" disabled>Download combined CSV</button>
+          </div>
+        </div>
+        <div id="granuleMessage" class="message"></div>
+        <div id="granules" class="granules"></div>
+        <p class="footnote">Large HDF/NetCDF granules can exceed serverless execution or response limits. Use variable filters and a row limit when testing very large products.</p>
+      </div>
+    </section>
+
+    <section id="externalArea" class="panel hidden">
+      <div class="step alt">+</div>
+      <div class="panel-body">
+        <h2>Non-NASA fallbacks</h2>
+        <p class="muted">If NASA has no suitable collection, use one of the mapped public-data providers below.</p>
+        <div id="externalCards" class="cards"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
