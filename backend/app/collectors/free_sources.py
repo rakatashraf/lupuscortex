@@ -112,11 +112,8 @@ async def _overpass(
     """
     response = await client.post(
         "https://overpass-api.de/api/interpreter",
-        content=query.encode("utf-8"),
-        headers={
-            "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": USER_AGENT,
-        },
+        data={"data": query},
+        headers={"User-Agent": USER_AGENT},
     )
     response.raise_for_status()
     elements = response.json().get("elements", [])
