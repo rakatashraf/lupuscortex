@@ -1,31 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "services": {
-    "frontend": {
-      "root": "lupus cortex/"
-    },
-    "backend": {
-      "root": "backend/",
+    "earthdata-downloader": {
+      "root": "earthdata-downloader/",
       "entrypoint": "app.main:app"
     }
   },
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": {
-        "service": "backend"
-      }
-    },
-    {
-      "source": "/health",
-      "destination": {
-        "service": "backend"
-      }
-    },
-    {
       "source": "/(.*)",
       "destination": {
-        "service": "frontend"
+        "service": "earthdata-downloader"
       }
     }
   ]
