@@ -1,0 +1,12 @@
+fastapi==0.116.1
+httpx==0.28.1
+requests==2.32.5
+pandas==2.3.2
+numpy==2.3.2
+xarray==2025.8.0
+netCDF4==1.7.2
+h5netcdf==1.6.4
+h5py==3.14.0
+rasterio==1.4.3
+pyhdf==0.11.6
+cftime==1.6.4.post1
