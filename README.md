@@ -10,6 +10,7 @@ Lupus Cortex is an urban-intelligence frontend plus an evidence-collection API d
 4. The API uses the token only for NASA Earthdata access. It is not written to disk, browser storage, logs, or the model payload.
 5. The API automatically gathers free contextual data from OpenStreetMap/Nominatim, Overpass and Open-Meteo.
 6. NASA CMR is queried for relevant Earth-observation granules and provenance. If `EARTHDATA_WORKER_URL` is configured, the API also asks that worker for numeric science-variable extraction.
+   - Date policy: use data inside the requested time window first. If none exists, select the most recent available observation at or before the requested due/end date. Data after a historical due date is never used as fallback.
 7. The combined evidence package is sent to the configured trained model at `MODEL_API_URL`.
 8. The model must return Lupus Cortex report schema `1.0`; the API validates it and sends it back to the frontend.
 
@@ -20,6 +21,8 @@ No browser-side fallback invents environmental values.
 The API performs authenticated CMR discovery for representative products covering MERRA-2 aerosols, MERRA-2 surface meteorology, GPM IMERG precipitation, MODIS LST/NDVI/AOD, SMAP soil moisture, GRACE/GRACE-FO water storage, VIIRS night lights and NASADEM.
 
 CMR discovery supplies granule metadata and provenance. Product-specific numeric extraction is deliberately delegated to `EARTHDATA_WORKER_URL`, because HDF/NetCDF products differ in variable names, QA flags, scale factors, cadence and spatial grids. This prevents the application from treating catalog metadata as physical measurements.
+
+Every NASA product result records `selection_mode`, `fallback_used`, `requested_due_date`, `source_timestamp`, and source lag where available. This allows the future model to distinguish exact-window observations from fallback observations instead of silently treating stale data as current.
 
 ## Free sources collected automatically
 
