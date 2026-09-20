@@ -498,8 +498,20 @@ if (document.readyState === 'loading') {
 
   window.addEventListener('cortex:analysis-state', event => {
     const state = event.detail;
-    if (state.status === 'awaiting_model') {
-      setStatus('ANALYSIS REQUESTED', `${state.request.name} | ${state.request.lat.toFixed(4)}, ${state.request.lon.toFixed(4)}`, 'Awaiting the model report. No environmental values are shown until the report includes evidence.', 'pending');
+    if (state.status === 'collecting_evidence') {
+      setStatus(
+        'COLLECTING EVIDENCE',
+        `${state.request.name} | ${state.request.lat.toFixed(4)}, ${state.request.lon.toFixed(4)}`,
+        'Authenticating NASA Earthdata and collecting NASA plus free public-source evidence. The Earthdata token is not stored or sent to the model.',
+        'pending'
+      );
+    } else if (state.status === 'awaiting_model') {
+      setStatus(
+        'EVIDENCE COLLECTED',
+        `${state.request.name} | ${state.request.lat.toFixed(4)}, ${state.request.lon.toFixed(4)}`,
+        'Evidence collection completed. Awaiting the trained model report. No environmental score is invented in the browser.',
+        'pending'
+      );
     }
   });
   window.addEventListener('cortex:analysis-error', event => setStatus('ANALYSIS UNAVAILABLE', event.detail.request?.name || 'Selected location', event.detail.error || 'The analysis request could not be completed.', 'error'));
