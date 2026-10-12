@@ -1,0 +1,7 @@
+# Install in a dedicated training environment, not the lightweight API image by default.
+-r requirements.txt
+numpy>=1.26,<3
+scikit-learn>=1.5,<2
+joblib>=1.4,<2
+# Optional, large dependency required only to train/infer the LSTM:
+# tensorflow-cpu>=2.16,<3
