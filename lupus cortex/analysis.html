@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lupus Cortex — Environmental Analysis</title>
+<style>
+:root { --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --accent: #38bdf8; }
+body { font-family: system-ui; background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }
+.wrap { max-width: 900px; margin: 0 auto; }
+.card { background: var(--card); border-radius: 12px; padding: 1.25rem; margin: 1rem 0; }
+h1 { color: var(--accent); }
+label { display: block; margin: 0.5rem 0 0.25rem; font-weight: 600; font-size: 0.9rem; }
+input { width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: var(--text); box-sizing: border-box; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+button { background: var(--accent); color: #0f172a; font-weight: 700; padding: 0.8rem 1.6rem; border: none; border-radius: 8px; cursor: pointer; margin-top: 1rem; font-size: 1rem; }
+button:disabled { opacity: 0.5; }
+.hwi { font-size: 3rem; font-weight: 800; }
+.badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; }
+.perfect { background: #166534; } .well { background: #365314; } .needs { background: #854d0e; }
+.poor { background: #9a3412; } .harmful { background: #991b1b; } .unknown { background: #475569; }
+table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #334155; font-size: 0.9rem; }
+.warn { background: #7c2d12; border-radius: 8px; padding: 0.75rem; margin: 0.5rem 0; }
+.rec { background: #1e3a5f; border-radius: 8px; padding: 0.75rem; margin: 0.5rem 0; }
+.note { font-size: 0.8rem; color: #94a3b8; }
+#error { color: #fca5a5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>🌍 Lupus Cortex — Environmental Analysis</h1>
+<p class="note">Live model predictions from the trained Random Forest (test R² 0.96), compared against WHO 2021 guidelines.</p>
+
+<div class="card">
+<h2>Model API Connection</h2>
+<label>Model API base URL (run <span class="note">backend/model_api.py</span> locally, or point at your deployed API)</label>
+<input id="api_url" type="text" value="http://127.0.0.1:8100">
+<p class="note" id="api_status">Not checked yet.</p>
+<button onclick="checkApi()">🔌 Check connection</button>
+</div>
+
+<div class="card">
+<h2>Location & Date</h2>
+<div class="grid2">
+<div><label>Latitude</label><input id="lat" type="number" value="23.81" step="0.0001"></div>
+<div><label>Longitude</label><input id="lon" type="number" value="90.41" step="0.0001"></div>
+</div>
+<label>Place name</label><input id="name" type="text" value="Dhaka">
+<label>Date (2025)</label><input id="date" type="date" value="2025-06-15" min="2025-01-01" max="2025-12-31">
+<button id="go" onclick="analyze()">🔍 Analyze</button>
+<div id="error"></div>
+</div>
+
+<div class="card" id="result" style="display:none">
+<h2>Healthy-City Index</h2>
+<div class="hwi" id="hwi_score">–</div>
+<span class="badge" id="hwi_badge">–</span>
+<p class="note" id="analysis_id"></p>
+
+<h2>Component Predictions</h2>
+<table>
+<thead><tr><th>Component</th><th>Predicted</th><th>WHO Guideline</th><th>Condition</th></tr></thead>
+<tbody id="comp_rows"></tbody>
+</table>
+
+<h2>Warnings</h2>
+<div id="warnings"></div>
+
+<h2>Recommendations</h2>
+<div id="recs"></div>
+
+<p class="note" id="provenance"></p>
+</div>
+</div>
+
+<script>
+const BADGE = {"Perfect":"perfect","Well managed":"well","Needs improvement":"needs","Poor":"poor","Harmful":"harmful","Unknown":"unknown"};
+(function restoreApiUrl() {
+  try {
+    const saved = localStorage.getItem("lc_api_url");
+    if (saved) document.getElementById("api_url").value = saved;
+  } catch (e) {}
+})();
+function apiBase() {
+  const v = document.getElementById("api_url").value.trim().replace(/\/+$/, "");
+  try { localStorage.setItem("lc_api_url", v); } catch (e) {}
+  return v;
+}
+
+async function checkApi() {
+  const el = document.getElementById("api_status");
+  el.textContent = "Checking…";
+  try {
+    const r = await fetch(apiBase() + "/health");
+    const j = await r.json();
+    el.textContent = r.ok && j.model_loaded
+      ? "✅ Connected — model " + j.model + " loaded (" + j.utc + ")"
+      : "⚠️ API responded but model not loaded.";
+  } catch (e) {
+    el.textContent = "❌ Cannot reach API: " + e.message +
+      " — start backend/model_api.py (python backend/model_api.py) and retry.";
+  }
+}
+
+async function analyze() {
+  const btn = document.getElementById("go");
+  const err = document.getElementById("error");
+  err.textContent = "";
+  btn.disabled = true;
+  btn.textContent = "Analyzing…";
+  const API = apiBase();
+  try {
+    const r = await fetch(API + "/api/analyze", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        lat: parseFloat(document.getElementById("lat").value),
+        lon: parseFloat(document.getElementById("lon").value),
+        name: document.getElementById("name").value,
+        date: document.getElementById("date").value,
+      }),
+    });
+    if (!r.ok) throw new Error("API error " + r.status);
+    const d = await r.json();
+    show(d);
+  } catch (e) {
+    err.textContent = "Could not reach the model API at " + API + " — " + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🔍 Analyze";
+  }
+}
+
+function show(d) {
+  document.getElementById("result").style.display = "block";
+  document.getElementById("hwi_score").textContent = d.hwi.score + "/100";
+  const b = document.getElementById("hwi_badge");
+  b.textContent = d.hwi.label;
+  b.className = "badge " + (BADGE[d.hwi.label] || "unknown");
+  document.getElementById("analysis_id").textContent = "Analysis " + d.analysis_id + " · model " + d.model_version;
+
+  const tb = document.getElementById("comp_rows");
+  tb.innerHTML = "";
+  for (const [k, c] of Object.entries(d.components)) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td><b>${k.toUpperCase()}</b></td>
+      <td>${c.predicted_value} ${c.unit}</td>
+      <td>${c.guideline_value} ${c.unit} (${c.guideline_org})</td>
+      <td><span class="badge ${BADGE[c.condition_label]||"unknown"}">${c.condition_label}</span></td>`;
+    tb.appendChild(tr);
+  }
+
+  const w = document.getElementById("warnings");
+  w.innerHTML = d.warnings.length
+    ? d.warnings.map(x => `<div class="warn">⚠️ ${x}</div>`).join("")
+    : '<p class="note">No warnings.</p>';
+
+  document.getElementById("recs").innerHTML =
+    d.recommendations.map(x => `<div class="rec">💡 ${x}</div>`).join("");
+
+  document.getElementById("provenance").textContent =
+    "Provenance: " + d.provenance.model + " · trained " + d.provenance.training_period +
+    " · " + d.provenance.per_component_note;
+}
+</script>
+</body>
+</html>
