@@ -3,67 +3,64 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lupus Cortex — 3D Digital Twin Studio</title>
+<title>Lupus Cortex — 3D Terrain Generator</title>
 <style>
   :root { --bg:#0a0f1a; --panel:#111827; --panel2:#0d1420; --accent:#61e7c7; --accent2:#54bce7; --text:#e8f0fa; --muted:#8fa3bd; --border:#1e2a3d; }
   * { box-sizing:border-box; }
   body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); overflow:hidden; }
   #viewport { position:fixed; inset:0; }
   #viewport canvas { display:block; }
-
-  .panel { position:fixed; background:rgba(17,24,39,.92); backdrop-filter:blur(12px); border:1px solid var(--border); border-radius:14px; padding:14px; z-index:10; }
+  .panel { position:fixed; background:rgba(17,24,39,.94); backdrop-filter:blur(12px); border:1px solid var(--border); border-radius:14px; padding:14px; z-index:10; }
   .panel h3 { margin:0 0 10px; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); }
   .panel h4 { margin:12px 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
 
-  #topbar { top:12px; left:50%; transform:translateX(-50%); display:flex; gap:8px; align-items:center; padding:10px 16px; }
-  #topbar .logo { font-weight:800; font-size:15px; color:var(--accent); }
-  #topbar .sub { font-size:11px; color:var(--muted); }
+  #searchPanel { top:12px; left:50%; transform:translateX(-50%); width:min(620px,94vw); }
+  #searchPanel .row { display:flex; gap:8px; }
+  #searchPanel input[type=text] { flex:1; background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:9px; padding:10px 12px; font-size:14px; }
+  #searchPanel input[type=text]:focus { border-color:var(--accent); outline:none; }
+  .btn { background:var(--accent); color:#061016; border:0; border-radius:9px; padding:10px 18px; font-weight:700; cursor:pointer; font-size:14px; white-space:nowrap; }
+  .btn:hover { opacity:.92; } .btn:disabled { opacity:.5; cursor:wait; }
+  .btn.ghost { background:var(--panel2); color:var(--text); border:1px solid var(--border); }
+  .btn.small { padding:6px 12px; font-size:12px; }
+  #searchResults { max-height:200px; overflow-y:auto; margin-top:8px; display:none; }
+  #searchResults.show { display:block; }
+  .sr-item { padding:9px 10px; border-radius:8px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--border); }
+  .sr-item:hover { background:rgba(97,231,199,.1); }
+  .sr-item .t { font-weight:600; } .sr-item .s { color:var(--muted); font-size:11px; }
+  .coord-row { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:8px; margin-top:10px; }
+  .coord-row input { background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:9px 10px; font-size:13px; width:100%; }
+  .coord-row label { font-size:10px; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:3px; }
 
-  #toolbar { top:70px; left:12px; width:52px; display:flex; flex-direction:column; gap:6px; padding:10px 8px; }
+  #toolbar { top:50%; left:12px; transform:translateY(-50%); width:52px; display:flex; flex-direction:column; gap:6px; padding:10px 8px; }
   #toolbar button { width:36px; height:36px; border-radius:9px; border:1px solid var(--border); background:var(--panel2); color:var(--text); font-size:17px; cursor:pointer; display:grid; place-items:center; }
   #toolbar button:hover { border-color:var(--accent); }
   #toolbar button.active { background:var(--accent); color:#061016; border-color:var(--accent); }
   #toolbar .sep { height:1px; background:var(--border); margin:4px 2px; }
 
-  #layersPanel { top:70px; right:12px; width:250px; max-height:calc(100vh - 220px); overflow-y:auto; }
-  .layer-item { display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; cursor:pointer; font-size:13px; }
-  .layer-item:hover { background:rgba(97,231,199,.08); }
-  .layer-item.active { background:rgba(97,231,199,.14); border:1px solid rgba(97,231,199,.35); }
-  .layer-swatch { width:14px; height:14px; border-radius:4px; flex-shrink:0; }
-  .layer-item input[type=checkbox] { accent-color:var(--accent); }
+  #controlPanel { top:12px; right:12px; width:264px; max-height:calc(100vh - 24px); overflow-y:auto; }
+  #controlPanel label { font-size:11px; color:var(--muted); text-transform:uppercase; display:block; margin:10px 0 4px; }
+  #controlPanel input[type=range] { width:100%; accent-color:var(--accent); }
+  #controlPanel input[type=text], #controlPanel input[type=number] { width:100%; background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:8px 10px; font-size:13px; }
+  #controlPanel select { width:100%; background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:8px; font-size:13px; }
+  .note { font-size:11px; color:var(--muted); line-height:1.5; }
 
-  #propsPanel { bottom:12px; left:12px; width:300px; max-height:40vh; overflow-y:auto; display:none; }
-  #propsPanel.show { display:block; }
-  .prop-row { display:flex; justify-content:space-between; padding:5px 0; font-size:13px; border-bottom:1px solid var(--border); }
-  .prop-row .k { color:var(--muted); } .prop-row .v { font-weight:600; }
+  #analysisPanel { bottom:12px; right:12px; width:320px; max-height:46vh; overflow-y:auto; display:none; }
+  #analysisPanel.show { display:block; }
+  .metric { display:flex; justify-content:space-between; padding:6px 0; font-size:13px; border-bottom:1px solid var(--border); }
+  .metric .k { color:var(--muted); } .metric .v { font-weight:700; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:99px; font-size:11px; font-weight:700; }
 
-  #timeline { bottom:12px; left:50%; transform:translateX(-50%); width:min(560px,90vw); display:flex; align-items:center; gap:10px; padding:10px 16px; }
-  #timeline input[type=range] { flex:1; accent-color:var(--accent); }
-  #timeline .date { font-size:12px; color:var(--muted); min-width:110px; text-align:center; }
-  #timeline button { background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 12px; cursor:pointer; }
-  #timeline button:hover { border-color:var(--accent); }
-
-  #stats { top:70px; left:76px; font-size:11px; color:var(--muted); padding:8px 12px; }
-  #stats b { color:var(--text); }
-
-  #help { bottom:12px; right:12px; font-size:11px; color:var(--muted); padding:8px 12px; max-width:230px; }
-  #help kbd { background:var(--panel2); border:1px solid var(--border); border-radius:4px; padding:1px 5px; font-size:10px; }
-
-  .btn { background:var(--accent); color:#061016; border:0; border-radius:8px; padding:8px 14px; font-weight:700; cursor:pointer; font-size:13px; }
-  .btn:hover { opacity:.9; }
-  .btn.ghost { background:var(--panel2); color:var(--text); border:1px solid var(--border); }
+  #status { bottom:12px; left:50%; transform:translateX(-50%); padding:8px 18px; font-size:12px; color:var(--muted); display:flex; gap:10px; align-items:center; }
+  #status .dot { width:8px; height:8px; border-radius:50%; background:#555; }
+  #status .dot.ok { background:var(--accent); } #status .dot.busy { background:#f5a623; animation:blink 1s infinite; }
+  @keyframes blink { 50% { opacity:.4; } }
 
   #loading { position:fixed; inset:0; background:var(--bg); z-index:100; display:grid; place-items:center; }
-  #loading .box { text-align:center; }
-  #loading .spin { font-size:40px; animation:spin 1.5s linear infinite; }
+  #loading .box { text-align:center; max-width:420px; padding:20px; }
+  #loading .spin { font-size:44px; animation:spin 2s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
-  #loading p { color:var(--muted); font-size:13px; }
-  #loading .bar { width:280px; height:6px; background:#1e293b; border-radius:3px; margin:16px auto 0; overflow:hidden; }
+  #loading .bar { width:300px; height:6px; background:#1e293b; border-radius:3px; margin:16px auto 0; overflow:hidden; }
   #loading .bar>div { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); width:0%; transition:width .3s; }
-
-  select, input[type=number] { background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:7px; padding:6px 8px; font-size:12px; width:100%; }
-  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .note { font-size:11px; color:var(--muted); line-height:1.5; }
 </style>
 </head>
 <body>
@@ -71,70 +68,65 @@
 
 <div id="loading">
   <div class="box">
-    <div class="spin">🌍</div>
-    <h2 style="color:var(--accent)">Lupus Cortex 3D Twin Studio</h2>
-    <p id="loadMsg">Loading real data…</p>
+    <div class="spin">🛰️</div>
+    <h2 style="color:var(--accent)">3D Terrain Generator</h2>
+    <p class="note" id="loadMsg">Search any place on Earth to generate its 3D terrain from satellite data.</p>
     <div class="bar"><div id="loadBar"></div></div>
   </div>
 </div>
 
-<div id="topbar" class="panel">
-  <span class="logo">🏙️ Lupus Cortex</span>
-  <span class="sub">3D Digital Twin Studio — Central Bangladesh</span>
+<div id="searchPanel" class="panel">
+  <div class="row">
+    <input type="text" id="placeSearch" placeholder="🔍 Search place… (e.g. Dhaka, Mount Everest, Grand Canyon)">
+    <button class="btn" id="btnSearch">Search</button>
+  </div>
+  <div id="searchResults"></div>
+  <div class="coord-row">
+    <div><label>Latitude</label><input type="number" id="inLat" step="0.0001" value="23.8103"></div>
+    <div><label>Longitude</label><input type="number" id="inLon" step="0.0001" value="90.4125"></div>
+    <div><label>Area size (km)</label><input type="number" id="inSize" value="10" min="1" max="50"></div>
+    <div><label>&nbsp;</label><button class="btn" id="btnGenerate">Generate 3D</button></div>
+  </div>
 </div>
 
 <div id="toolbar" class="panel">
   <button id="toolSelect" class="active" title="Select (V)">👆</button>
-  <button id="toolMeasure" title="Measure distance (M)">📏</button>
-  <button id="toolAdd" title="Add building (B)">🏢</button>
-  <button id="toolDelete" title="Delete selected (Del)">🗑️</button>
+  <button id="toolBuilding" title="Add building (B)">🏢</button>
+  <button id="toolMeasure" title="Measure (M)">📏</button>
+  <button id="toolDelete" title="Delete (Del)">🗑️</button>
   <div class="sep"></div>
   <button id="viewTop" title="Top view (1)">⬒</button>
-  <button id="viewIso" title="Isometric (2)">◈</button>
-  <button id="viewStreet" title="Street level (3)">🚶</button>
+  <button id="viewIso" title="3D view (2)">◈</button>
   <div class="sep"></div>
+  <button id="btnAnalyze" title="Send to AI model for analysis (A)" style="border-color:var(--accent)">🧠</button>
   <button id="btnShot" title="Screenshot (P)">📷</button>
-  <button id="btnHelp" title="Help (H)">❓</button>
 </div>
 
-<div id="layersPanel" class="panel">
-  <h3>Data Layers</h3>
-  <div id="layerList"></div>
-  <h4>Scene</h4>
-  <div class="layer-item"><input type="checkbox" id="chkBuildings" checked><span>🏢 Buildings</span></div>
-  <div class="layer-item"><input type="checkbox" id="chkTerrain" checked><span>⛰️ Terrain (DEM)</span></div>
-  <div class="layer-item"><input type="checkbox" id="chkStations" checked><span>📡 Air stations</span></div>
-  <div class="layer-item"><input type="checkbox" id="chkGrid" checked><span>🔲 Data grid</span></div>
-  <div class="layer-item"><input type="checkbox" id="chkPop" checked><span>👥 Population</span></div>
-  <h4>Display</h4>
-  <div class="row2">
-    <div><label class="note">Sun time</label><input type="range" id="sunTime" min="0" max="24" step="0.5" value="12" style="width:100%"></div>
-    <div><label class="note">Exaggeration</label><input type="number" id="vertExag" value="25" min="1" max="100"></div>
-  </div>
-  <p class="note" style="margin-top:10px">Buildings are procedurally modeled from WorldPop density + OSM footprints where available. Terrain from Copernicus DEM.</p>
+<div id="controlPanel" class="panel">
+  <h3>Terrain Controls</h3>
+  <label>Vertical exaggeration</label>
+  <input type="range" id="vertExag" min="0.5" max="5" step="0.1" value="1.5">
+  <label>Texture</label>
+  <select id="texMode">
+    <option value="satellite">🛰️ Satellite imagery</option>
+    <option value="elevation">⛰️ Elevation colors</option>
+    <option value="wireframe">▦ Wireframe</option>
+  </select>
+  <label>Model API URL</label>
+  <input type="text" id="apiUrl" value="http://127.0.0.1:8100" placeholder="http://127.0.0.1:8100">
+  <p class="note">Run <b>backend/model_api.py</b> locally, or enter your deployed API URL. Every 3D change auto-sends for analysis.</p>
+  <h4>Current Model</h4>
+  <div id="modelInfo" class="note">No terrain generated yet.</div>
+  <h4>Buildings</h4>
+  <div id="buildingInfo" class="note">0 buildings placed.</div>
 </div>
 
-<div id="propsPanel" class="panel">
-  <h3 id="propsTitle">Selection</h3>
-  <div id="propsBody"></div>
-  <div id="propsActions" style="margin-top:10px; display:flex; gap:8px;"></div>
+<div id="analysisPanel" class="panel">
+  <h3>🧠 AI Analysis Result</h3>
+  <div id="analysisBody"><p class="note">Modify the 3D model or press 🧠 to analyze.</p></div>
 </div>
 
-<div id="timeline" class="panel">
-  <button id="btnPlay">▶️</button>
-  <input type="range" id="daySlider" min="0" max="364" value="0">
-  <span class="date" id="dateLabel">2025-01-01</span>
-</div>
-
-<div id="stats" class="panel"><span id="statText">—</span></div>
-
-<div id="help" class="panel" style="display:none">
-  <h3>Shortcuts</h3>
-  <p><kbd>V</kbd> select · <kbd>M</kbd> measure · <kbd>B</kbd> add building · <kbd>Del</kbd> delete<br>
-  <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> camera views · <kbd>P</kbd> screenshot<br>
-  <kbd>←</kbd><kbd>→</kbd> step day · <kbd>Space</kbd> play/pause</p>
-  <p class="note">Click buildings/stations for details. Drag to orbit, scroll to zoom, right-drag to pan.</p>
-</div>
+<div id="status" class="panel"><span class="dot" id="statusDot"></span><span id="statusText">Ready</span></div>
 
 <script type="importmap">
 { "imports": {
