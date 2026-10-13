@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lupus Cortex — 3D Digital Twin (Central Bangladesh, 2025)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0b1220; color: #e5e7eb; overflow: hidden; }
+  #scene { position: fixed; inset: 0; }
+  header { position: fixed; top: 0; left: 0; right: 0; padding: 10px 16px;
+    background: rgba(11,18,32,.85); backdrop-filter: blur(6px); z-index: 10;
+    border-bottom: 1px solid #1f2937; }
+  header h1 { font-size: 17px; font-weight: 700; }
+  header h1 span { color: #6ee7b7; }
+  header p { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+  #caveats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .chip { font-size: 10px; background: #1f2937; border: 1px solid #374151; color: #d1d5db;
+    padding: 3px 8px; border-radius: 20px; }
+  .panel { position: fixed; z-index: 10; background: rgba(17,24,39,.92);
+    border: 1px solid #374151; border-radius: 10px; padding: 12px 14px; backdrop-filter: blur(6px); }
+  #controls { top: 108px; left: 12px; width: 240px; }
+  #controls h2, #infoPanel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+    color: #9ca3af; margin-bottom: 8px; }
+  #controls label.row, #predRow { display: flex; align-items: center; gap: 8px;
+    font-size: 13px; margin: 7px 0; cursor: pointer; }
+  #controls select { width: 100%; padding: 7px; border-radius: 6px; background: #1f2937;
+    color: #e5e7eb; border: 1px solid #4b5563; font-size: 13px; }
+  #infoPanel { top: 108px; right: 12px; width: 290px; display: none; max-height: 70vh; overflow-y: auto; }
+  #infoPanel h3 { font-size: 15px; margin-bottom: 8px; color: #6ee7b7; }
+  #infoBody .row { display: flex; justify-content: space-between; gap: 10px;
+    font-size: 12.5px; padding: 5px 0; border-bottom: 1px solid #1f2937; }
+  #infoBody .row span { color: #9ca3af; }
+  #infoBody .row b { text-align: right; font-weight: 600; }
+  .badge { display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 12px; font-weight: 600; }
+  .badge.ok { background: #14532d; color: #bbf7d0; }
+  .badge.warn { background: #713f12; color: #fde68a; }
+  .badge.bad { background: #7f1d1d; color: #fecaca; }
+  .note { font-size: 10px; color: #9ca3af; }
+  #closeInfo { float: right; background: none; border: none; color: #9ca3af; font-size: 16px; cursor: pointer; }
+  #timebar { bottom: 14px; left: 50%; transform: translateX(-50%); width: min(680px, 92vw);
+    display: flex; align-items: center; gap: 12px; }
+  #timebar input[type=range] { flex: 1; accent-color: #6ee7b7; }
+  #dateLabel { font-size: 13px; font-weight: 600; white-space: nowrap; min-width: 190px; }
+  #playBtn { background: #059669; border: none; color: white; padding: 8px 14px;
+    border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  #playBtn:hover { background: #047857; }
+  #legend { bottom: 14px; left: 12px; width: 210px; }
+  #legend h2 { font-size: 11px; color: #9ca3af; margin-bottom: 6px; }
+  #legendLabel { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .grad { height: 10px; border-radius: 5px;
+    background: linear-gradient(90deg,#440154,#482878,#3e4989,#31688e,#26828e,#1f9e89,#35b779,#6ece58,#b8de29,#fde725); }
+  .scale { display: flex; justify-content: space-between; font-size: 11px; color: #9ca3af; margin-top: 4px; }
+  #err { position: fixed; top: 40%; left: 50%; transform: translate(-50%,-50%); z-index: 50;
+    background: #7f1d1d; color: #fecaca; padding: 18px 22px; border-radius: 10px;
+    max-width: 520px; display: none; font-size: 14px; }
+  #hint { position: fixed; bottom: 14px; right: 12px; z-index: 10; font-size: 11px;
+    color: #6b7280; background: rgba(17,24,39,.8); padding: 6px 10px; border-radius: 8px; }
+  @media (max-width: 760px) { #controls { width: 200px; } #infoPanel { width: 250px; } }
+</style>
+<script type="importmap">
+{ "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="scene"></div>
+
+<header>
+  <h1>🌍 Lupus Cortex <span>3D Digital Twin</span> — Central Bangladesh · 2025</h1>
+  <p id="srcLine">Loading data sources…</p>
+  <div id="caveats"></div>
+</header>
+
+<div id="err"></div>
+
+<div class="panel" id="controls">
+  <h2>Layers</h2>
+  <select id="layerSel"></select>
+  <label class="row" id="predRow"><input type="checkbox" id="predToggle"> Show RF model prediction</label>
+  <h2 style="margin-top:10px">Overlays</h2>
+  <label class="row"><input type="checkbox" id="tglStations" checked> Air-quality stations</label>
+  <label class="row"><input type="checkbox" id="tglGrid" checked> 20-pt ERA5 grid</label>
+  <label class="row"><input type="checkbox" id="tglTerrain" checked> Terrain (5 DEM pts, ×25)</label>
+  <label class="row"><input type="checkbox" id="tglPop"> Population (WorldPop 2020)</label>
+</div>
+
+<div class="panel" id="infoPanel">
+  <button id="closeInfo">✕</button>
+  <h2>Selected</h2>
+  <div id="infoBody"></div>
+</div>
+
+<div class="panel" id="legend">
+  <h2>Legend</h2>
+  <div id="legendLabel">PM2.5 — observed</div>
+  <div class="grad"></div>
+  <div class="scale"><span id="legendMin">–</span><span id="legendMax">–</span></div>
+</div>
+
+<div class="panel" id="timebar">
+  <button id="playBtn">▶ Play year</button>
+  <input type="range" id="daySlider" min="0" max="364" value="0" step="1">
+  <span id="dateLabel">2025-01-01</span>
+</div>
+
+<div id="hint">Drag to rotate · scroll to zoom · right-drag to pan · click a station / grid point</div>
+
+<script type="module" src="twin.js"></script>
+</body>
+</html>
