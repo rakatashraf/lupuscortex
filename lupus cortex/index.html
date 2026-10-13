@@ -506,6 +506,16 @@
         <button class="btn secondary" id="terrainBuildCityBtn" title="Rebuild terrain + GIS as a clean architectural massing model">Refresh Twin</button>
       </div>
 
+      <div class="terrain-layers" id="terrainLayerPicker" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 4px;border-top:1px solid var(--border);margin-top:4px">
+        <span style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em">Layers:</span>
+        <label style="font-size:13px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="lyrBuildings" checked style="accent-color:var(--accent)"> 🏢 Buildings</label>
+        <label style="font-size:13px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="lyrRoads" checked style="accent-color:var(--accent)"> 🛣️ Roads</label>
+        <label style="font-size:13px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="lyrWater" checked style="accent-color:var(--accent)"> 💧 Waterways</label>
+        <label style="font-size:13px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="lyrTrees" checked style="accent-color:var(--accent)"> 🌳 Trees</label>
+        <label style="font-size:13px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="lyrContours" style="accent-color:var(--accent)"> 〰️ Contour lines</label>
+        <label style="font-size:13px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="lyrDTM" checked style="accent-color:var(--accent)"> ⛰️ DTM terrain</label>
+      </div>
+
       <div class="terrain-examples">
         <span>Try:</span>
         <button class="example-btn" onclick="terrainExample('Mount Everest')">Mount Everest</button>
