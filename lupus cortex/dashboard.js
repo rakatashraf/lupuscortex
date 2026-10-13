@@ -97,7 +97,11 @@ async function fetchUrbanHealthData() {
     
     const analysisState = window.CortexAnalysis?.snapshot?.();
     if (analysisState?.status === 'ready' && analysisState.analysis) {
-      renderDashboardFromAnalysis(analysisState.analysis);
+      if (analysisState.analysis.extraction) {
+        renderDashboardFromExtraction(analysisState.analysis.extraction, analysisState.analysis.location);
+      } else {
+        renderDashboardFromAnalysis(analysisState.analysis);
+      }
     } else {
       renderDashboardUnavailable(analysisState?.status === 'awaiting_model');
       window.CortexAnalysis?.request?.(appState.currentLocation);
@@ -260,6 +264,59 @@ function renderDashboardFromAnalysis(report) {
   selectedTrendKeys = null;
   renderDashboard(appState.healthData);
 }
+
+function renderDashboardFromExtraction(extraction, location) {
+  const grid = document.getElementById('indicesGrid');
+  const meteo = extraction.sources?.meteorology || {};
+  const nasa = extraction.sources?.nasa_collections || {};
+  const stats = meteo.stats || {};
+  const cards = [];
+
+  if (meteo.days) {
+    cards.push({
+      key: 'METEO', name: 'Meteorology (extracted)',
+      description: 'Live daily meteorology for the selected area and date range, fetched from Open-Meteo (ERA5).',
+      html:
+        '<div class="index-framework-meta"><span>Period</span><p>' + extraction.date_from + ' to ' + extraction.date_to + ' (' + meteo.days + ' days)</p></div>' +
+        '<div class="index-framework-meta"><span>Mean temperature</span><p>' + (stats.temp_mean_avg_c ?? '—') + ' °C</p></div>' +
+        '<div class="index-framework-meta"><span>Total precipitation</span><p>' + (stats.precip_total_mm ?? '—') + ' mm</p></div>' +
+        '<div class="index-framework-meta"><span>Mean humidity</span><p>' + (stats.humidity_avg_pct ?? '—') + ' %</p></div>'
+    });
+  }
+  if (nasa.count) {
+    cards.push({
+      key: 'NASA', name: 'NASA collections (discovered)',
+      description: 'Earth observation collections covering the selected area, discovered via NASA Earthdata CMR with your validated token.',
+      html:
+        '<div class="index-framework-meta"><span>Collections found</span><p>' + nasa.count + '</p></div>' +
+        (nasa.collections || []).slice(0, 5).map(c =>
+          '<div class="index-framework-meta"><span>' + (c.id || '') + '</span><p>' + (c.title || '').slice(0, 90) + '</p></div>'
+        ).join('')
+    });
+  }
+  if (!cards.length) { renderDashboardUnavailable(false); return; }
+
+  if (grid) grid.innerHTML = cards.map(c =>
+    '<article class="index-card" tabindex="0" aria-label="' + c.name + '">' +
+      '<div class="index-card-topline"><span class="index-status-badge normal">Live data</span><span class="index-key">' + c.key + '</span></div>' +
+      '<h3>' + c.name + '</h3><p class="index-framework-description">' + c.description + '</p>' +
+      c.html +
+      '<div class="index-card-cta">Extracted ' + (extraction.extracted_at || '').slice(0, 10) + '</div>' +
+    '</article>'
+  ).join('');
+
+  const loc = location || {};
+  const title = (loc.name || 'Selected location') + ' | bbox ' + (extraction.bbox || []).join(', ');
+  ['overallScore', 'hwiScore'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
+  ['scoreStatus', 'hwiStatus'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = 'Extraction complete'; });
+  appState.healthData = { extraction, location: loc, timestamp: extraction.extracted_at };
+}
+
+// Listen for client-side extraction results (static hosting flow)
+window.addEventListener('cortex:extraction-ready', event => {
+  const data = event.detail || {};
+  renderDashboardFromExtraction(data, window.CortexAnalysis?.snapshot?.()?.request);
+});
 
 function statusIcon(s) {
   if (s >= 81) return '🟢';
