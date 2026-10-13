@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lupus Cortex — Data Collector</title>
+<style>
+body { font-family: system-ui; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+.section { border: 1px solid #ddd; padding: 1rem; margin: 1rem 0; border-radius: 8px; }
+label { display: block; margin: 0.5rem 0 0.25rem; font-weight: 600; }
+input, select, textarea { width: 100%; padding: 0.5rem; margin-bottom: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
+button { background: #2563eb; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; }
+button:hover { background: #1d4ed8; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+#status { padding: 1rem; margin: 1rem 0; border-radius: 4px; }
+.success { background: #dcfce7; }
+.error { background: #fee2e2; }
+.info { background: #dbeafe; }
+</style>
+</head>
+<body>
+<h1>🌍 Lupus Cortex Data Collector</h1>
+<p>Collect environmental data for any location and date range.</p>
+
+<div class="section">
+<h2>1. API Tokens</h2>
+<label>OpenAQ Token</label>
+<input type="password" id="openaq_token" placeholder="Enter OpenAQ API token">
+<label>NASA Earthdata Token</label>
+<input type="password" id="earthdata_token" placeholder="Enter Earthdata bearer token">
+</div>
+
+<div class="section">
+<h2>2. Date Range</h2>
+<div class="grid">
+<div><label>Start Date</label><input type="date" id="start_date" value="2025-01-01"></div>
+<div><label>End Date</label><input type="date" id="end_date" value="2025-12-31"></div>
+</div>
+</div>
+
+<div class="section">
+<h2>3. Location</h2>
+<label>Input Method</label>
+<select id="location_method" onchange="toggleLocationInputs()">
+<option value="bbox">Bounding Box</option>
+<option value="point">Point + Radius</option>
+<option value="place">Place Name</option>
+<option value="gps">GPS Coordinates</option>
+</select>
+
+<div id="bbox_inputs">
+<div class="grid">
+<div><label>South (lat)</label><input type="number" id="bbox_s" value="22.80" step="0.01"></div>
+<div><label>West (lon)</label><input type="number" id="bbox_w" value="89.24" step="0.01"></div>
+<div><label>North (lat)</label><input type="number" id="bbox_n" value="24.80" step="0.01"></div>
+<div><label>East (lon)</label><input type="number" id="bbox_e" value="91.31" step="0.01"></div>
+</div>
+</div>
+
+<div id="point_inputs" style="display:none">
+<div class="grid">
+<div><label>Latitude</label><input type="number" id="point_lat" value="23.81" step="0.0001"></div>
+<div><label>Longitude</label><input type="number" id="point_lon" value="90.41" step="0.0001"></div>
+</div>
+<label>Radius (km)</label><input type="number" id="point_radius" value="25">
+</div>
+
+<div id="place_inputs" style="display:none">
+<label>Place Name</label>
+<input type="text" id="place_name" placeholder="e.g., Dhaka, Bangladesh">
+</div>
+
+<div id="gps_inputs" style="display:none">
+<label>GPS Coordinates (lat, lon)</label>
+<input type="text" id="gps_coords" placeholder="23.8103, 90.4125">
+<button type="button" onclick="getGPS()">📍 Use My Location</button>
+</div>
+</div>
+
+<div class="section">
+<h2>4. Components</h2>
+<label><input type="checkbox" id="select_all" checked onchange="toggleAll()"> Select All (30 components)</label>
+<div id="component_list" style="max-height: 200px; overflow-y: auto; border: 1px solid #eee; padding: 0.5rem;">
+<!-- Populated by JS -->
+</div>
+</div>
+
+<button onclick="collectData()">🚀 Collect Data</button>
+<button onclick="downloadCSV()">📥 Download Master CSV</button>
+
+<div id="status"></div>
+<div id="results"></div>
+
+<script>
+const COMPONENTS = [
+"01 PM2.5", "02 PM10", "03 NO₂", "04 O₃", "05 SO₂", "06 CO",
+"07 AOD", "08 LST", "09 Air Temperature", "10 Relative Humidity",
+"11 Precipitation", "12 NDVI", "13 Land Cover", "14 Soil Moisture",
+"15 Surface Water", "16 Flood Risk", "17 Drought Risk", "18 Population Density",
+"19 Vulnerable Population", "20 Road Network", "21 Public Transport",
+"22 Healthcare Access", "23 Green Space", "24 Infrastructure",
+"25 Nighttime Lights", "26 Elevation", "27 Slope", "28 Disaster Exposure",
+"29 Biodiversity", "30 Urban Pressure"
+];
+
+function initComponents() {
+  const div = document.getElementById('component_list');
+  div.innerHTML = COMPONENTS.map((c, i) => 
+    `<label><input type="checkbox" class="comp" value="${i+1}" checked> ${c}</label>`
+  ).join('<br>');
+}
+
+function toggleAll() {
+  const checked = document.getElementById('select_all').checked;
+  document.querySelectorAll('.comp').forEach(c => c.checked = checked);
+}
+
+function toggleLocationInputs() {
+  const m = document.getElementById('location_method').value;
+  ['bbox', 'point', 'place', 'gps'].forEach(k => {
+    document.getElementById(k + '_inputs').style.display = k === m ? 'block' : 'none';
+  });
+}
+
+function getGPS() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(p => {
+      document.getElementById('gps_coords').value = 
+        `${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`;
+      setStatus('GPS location acquired', 'success');
+    }, e => setStatus('GPS error: ' + e.message, 'error'));
+  }
+}
+
+function setStatus(msg, type) {
+  const s = document.getElementById('status');
+  s.className = type;
+  s.textContent = msg;
+}
+
+async function collectData() {
+  setStatus('Collecting data...', 'info');
+  const payload = {
+    openaq_token: document.getElementById('openaq_token').value,
+    earthdata_token: document.getElementById('earthdata_token').value,
+    start_date: document.getElementById('start_date').value,
+    end_date: document.getElementById('end_date').value,
+    location_method: document.getElementById('location_method').value,
+    components: [...document.querySelectorAll('.comp:checked')].map(c => c.value),
+  };
+  // Add location params based on method
+  const m = payload.location_method;
+  if (m === 'bbox') {
+    payload.bbox = [
+      parseFloat(document.getElementById('bbox_s').value),
+      parseFloat(document.getElementById('bbox_w').value),
+      parseFloat(document.getElementById('bbox_n').value),
+      parseFloat(document.getElementById('bbox_e').value),
+    ];
+  }
+  // TODO: Connect to backend /api/collect
+  setStatus('Collector UI ready. Backend integration pending.', 'info');
+  document.getElementById('results').innerHTML = 
+    `<pre>${JSON.stringify(payload, null, 2)}</pre>`;
+}
+
+function downloadCSV() {
+  setStatus('Download functionality connects to backend /api/download', 'info');
+}
+
+initComponents();
+</script>
+</body>
+</html>
