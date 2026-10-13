@@ -112,6 +112,8 @@
     const lng = Number(location?.lng ?? location?.lon) || 90.41;
     // Default ~0.5° box around the point
     const d = 0.25;
+    // Date range extends to the present day
+    const today = new Date().toISOString().slice(0, 10);
     return new Promise(resolve => {
       const backdrop = document.createElement('div');
       backdrop.className = 'lc-backdrop';
@@ -129,8 +131,8 @@
           '<p class="lc-note">Order: South, West, North, East.</p>' +
           '<label>Date range</label>' +
           '<div class="lc-grid2">' +
-            '<div><input id="lcDateFrom" type="date" value="2025-01-01" min="2020-01-01" max="2025-12-31" /></div>' +
-            '<div><input id="lcDateTo" type="date" value="2025-12-31" min="2020-01-01" max="2025-12-31" /></div>' +
+            '<div><input id="lcDateFrom" type="date" value="2025-01-01" min="2020-01-01" max="' + today + '" /></div>' +
+            '<div><input id="lcDateTo" type="date" value="' + today + '" min="2020-01-01" max="' + today + '" /></div>' +
           '</div>' +
           '<div class="lc-error" aria-live="polite"></div>' +
           '<div class="lc-actions">' +
