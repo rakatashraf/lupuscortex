@@ -80,11 +80,18 @@ function terrainH(lat, lon) { return idwFn ? idwFn(lat, lon) * TERRAIN_EXAG / 10
 
 /* ---------- data loading ---------- */
 async function loadData() {
-  const files = ['twin_meta','twin_stations','twin_grid','twin_elevation','twin_population'];
+  const files = ['twin_meta','twin_stations','twin_elevation','twin_population'];
   for (const f of files) {
     const res = await fetch(DATA_DIR + f + '.json');
     if (!res.ok) throw new Error('Cannot load ' + f + '.json (HTTP ' + res.status + ')');
     D[f.replace('twin_','')] = await res.json();
+  }
+  // grid data split into parts (GitHub file-size limits); merge in order
+  D.grid = [];
+  for (let p = 1; p <= 4; p++) {
+    const res = await fetch(DATA_DIR + 'twin_grid_p' + p + '.json');
+    if (!res.ok) throw new Error('Cannot load twin_grid_p' + p + '.json (HTTP ' + res.status + ')');
+    D.grid.push(...await res.json());
   }
   // colormap ranges per layer (p1–p99 over the year to resist outliers)
   D.ranges = {};
