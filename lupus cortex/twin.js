@@ -27,15 +27,11 @@ const LAYERS = {
   pm10:     { kind:'station', label:'PM10', unit:'µg/m³', who:45, whoOrg:'WHO 2021 (24-h)' },
   o3:       { kind:'station', label:'O₃', unit:'µg/m³', who:100, whoOrg:'WHO 2021 (8-h)' },
   so2:      { kind:'station', label:'SO₂', unit:'µg/m³', who:40, whoOrg:'WHO 2021 (24-h)' },
-  no2:      { kind:'station', label:'NO₂', unit:'ppb', who:25, whoOrg:'WHO 2021 (24-h)' },
-  co:       { kind:'station', label:'CO', unit:'ppb', who:4000, whoOrg:'WHO 2021 (24-h)' },
   temp_mean:{ kind:'grid', label:'Air Temp', unit:'°C', pred:true },
   humidity: { kind:'grid', label:'Humidity', unit:'%', pred:true },
   precip:   { kind:'grid', label:'Precipitation', unit:'mm', pred:true },
-  ndvi:     { kind:'grid', label:'NDVI', unit:'index', pred:false },
-  lst:      { kind:'grid', label:'Land Surface Temp', unit:'°C', pred:false },
   flood:    { kind:'grid', label:'Flood Risk', unit:'index' },
-  nightlights: { kind:'grid', label:'Night Lights', unit:'nW/cm²/sr' },
+  pressure: { kind:'grid', label:'Urban Pressure', unit:'index 0–100', pred:true },
 };
 
 const state = {
@@ -78,14 +74,13 @@ async function loadData() {
     setLoad(65 + p * 5, 'Loading grid part ' + p + '/4…');
     const res = await fetch(DATA_DIR + 'twin_grid_p' + p + '.json');
     if (!res.ok) throw new Error('Cannot load twin_grid_p' + p + '.json');
-    D.grid.push(...await res.json());
+    const part = await res.json();
+    if (Array.isArray(part)) D.grid.push(...part);
   }
-  // dates from first grid point
-  if (D.grid[0]?.daily) {
-    const k = Object.keys(D.grid[0].daily)[0];
-    dates = D.grid[0].daily[k]?.map((_, i) => D.grid[0].dates?.[i] || ('day ' + i)) || [];
-  }
-  if (!dates.length) dates = Array.from({length: 365}, (_, i) => '2025-' + String(Math.floor(i/30)+1).padStart(2,'0') + '-' + String(i%30+1).padStart(2,'0'));
+  // dates from meta bundle (365 daily dates)
+  dates = (D.meta && Array.isArray(D.meta.dates) && D.meta.dates.length)
+    ? D.meta.dates
+    : Array.from({length: 365}, (_, i) => '2025-day-' + (i+1));
   setLoad(95, 'Building scene…');
 }
 
@@ -176,7 +171,7 @@ function buildTerrain() {
     for (const p of elev) {
       const d2 = (p.lat-lat)**2 + (p.lon-lon)**2 + 1e-9;
       const w = 1/d2;
-      num += p.elevation_m * w; den += w;
+      num += p.value * w; den += w;
     }
     const h = den ? num/den : 5;
     pos.setY(i, h * state.vertExag / 100 * 10);
@@ -201,7 +196,7 @@ function terrainHeightAt(lat, lon) {
   for (const p of elev) {
     const d2 = (p.lat-lat)**2 + (p.lon-lon)**2 + 1e-9;
     const w = 1/d2;
-    num += p.elevation_m * w; den += w;
+    num += p.value * w; den += w;
   }
   return den ? num/den : 5;
 }
@@ -216,7 +211,7 @@ function buildBuildings() {
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 
   for (const p of pop) {
-    const density = p.population || 0;
+    const density = p.value || 0;
     if (density < 50) continue;
     const n = Math.min(14, Math.floor(density / 4000) + 1);
     const [bx, bz] = latLonToXZ(p.lat, p.lon);
@@ -330,17 +325,17 @@ function buildGrid() {
 function buildPopulation() {
   const geo = new THREE.CylinderGeometry(0.5, 0.5, 1, 8);
   let maxPop = 1;
-  for (const p of D.population || []) maxPop = Math.max(maxPop, p.population||0);
+  for (const p of D.population || []) maxPop = Math.max(maxPop, p.value||0);
   for (const p of D.population || []) {
     const [x, z] = latLonToXZ(p.lat, p.lon);
     const h = terrainHeightAt(p.lat, p.lon) * state.vertExag/100*10;
-    const t = (p.population||0)/maxPop;
+    const t = (p.value||0)/maxPop;
     const mat = new THREE.MeshStandardMaterial({ color:cmap(t), roughness:0.6 });
     const m = new THREE.Mesh(geo, mat);
     const bh = 1 + t*18;
     m.scale.y = bh;
     m.position.set(x, h + bh/2, z);
-    m.userData = { type:'population', lat:p.lat, lon:p.lon, pop:p.population };
+    m.userData = { type:'population', lat:p.lat, lon:p.lon, pop:p.value };
     popGroup.add(m);
   }
   popGroup.visible = state.showPop;
