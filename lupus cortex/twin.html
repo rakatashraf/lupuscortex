@@ -3,111 +3,145 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lupus Cortex — 3D Digital Twin (Central Bangladesh, 2025)</title>
+<title>Lupus Cortex — 3D Digital Twin Studio</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, -apple-system, sans-serif; background: #0b1220; color: #e5e7eb; overflow: hidden; }
-  #scene { position: fixed; inset: 0; }
-  header { position: fixed; top: 0; left: 0; right: 0; padding: 10px 16px;
-    background: rgba(11,18,32,.85); backdrop-filter: blur(6px); z-index: 10;
-    border-bottom: 1px solid #1f2937; }
-  header h1 { font-size: 17px; font-weight: 700; }
-  header h1 span { color: #6ee7b7; }
-  header p { font-size: 11px; color: #9ca3af; margin-top: 2px; }
-  #caveats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-  .chip { font-size: 10px; background: #1f2937; border: 1px solid #374151; color: #d1d5db;
-    padding: 3px 8px; border-radius: 20px; }
-  .panel { position: fixed; z-index: 10; background: rgba(17,24,39,.92);
-    border: 1px solid #374151; border-radius: 10px; padding: 12px 14px; backdrop-filter: blur(6px); }
-  #controls { top: 108px; left: 12px; width: 240px; }
-  #controls h2, #infoPanel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
-    color: #9ca3af; margin-bottom: 8px; }
-  #controls label.row, #predRow { display: flex; align-items: center; gap: 8px;
-    font-size: 13px; margin: 7px 0; cursor: pointer; }
-  #controls select { width: 100%; padding: 7px; border-radius: 6px; background: #1f2937;
-    color: #e5e7eb; border: 1px solid #4b5563; font-size: 13px; }
-  #infoPanel { top: 108px; right: 12px; width: 290px; display: none; max-height: 70vh; overflow-y: auto; }
-  #infoPanel h3 { font-size: 15px; margin-bottom: 8px; color: #6ee7b7; }
-  #infoBody .row { display: flex; justify-content: space-between; gap: 10px;
-    font-size: 12.5px; padding: 5px 0; border-bottom: 1px solid #1f2937; }
-  #infoBody .row span { color: #9ca3af; }
-  #infoBody .row b { text-align: right; font-weight: 600; }
-  .badge { display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 12px; font-weight: 600; }
-  .badge.ok { background: #14532d; color: #bbf7d0; }
-  .badge.warn { background: #713f12; color: #fde68a; }
-  .badge.bad { background: #7f1d1d; color: #fecaca; }
-  .note { font-size: 10px; color: #9ca3af; }
-  #closeInfo { float: right; background: none; border: none; color: #9ca3af; font-size: 16px; cursor: pointer; }
-  #timebar { bottom: 14px; left: 50%; transform: translateX(-50%); width: min(680px, 92vw);
-    display: flex; align-items: center; gap: 12px; }
-  #timebar input[type=range] { flex: 1; accent-color: #6ee7b7; }
-  #dateLabel { font-size: 13px; font-weight: 600; white-space: nowrap; min-width: 190px; }
-  #playBtn { background: #059669; border: none; color: white; padding: 8px 14px;
-    border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
-  #playBtn:hover { background: #047857; }
-  #legend { bottom: 14px; left: 12px; width: 210px; }
-  #legend h2 { font-size: 11px; color: #9ca3af; margin-bottom: 6px; }
-  #legendLabel { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
-  .grad { height: 10px; border-radius: 5px;
-    background: linear-gradient(90deg,#440154,#482878,#3e4989,#31688e,#26828e,#1f9e89,#35b779,#6ece58,#b8de29,#fde725); }
-  .scale { display: flex; justify-content: space-between; font-size: 11px; color: #9ca3af; margin-top: 4px; }
-  #err { position: fixed; top: 40%; left: 50%; transform: translate(-50%,-50%); z-index: 50;
-    background: #7f1d1d; color: #fecaca; padding: 18px 22px; border-radius: 10px;
-    max-width: 520px; display: none; font-size: 14px; }
-  #hint { position: fixed; bottom: 14px; right: 12px; z-index: 10; font-size: 11px;
-    color: #6b7280; background: rgba(17,24,39,.8); padding: 6px 10px; border-radius: 8px; }
-  @media (max-width: 760px) { #controls { width: 200px; } #infoPanel { width: 250px; } }
+  :root { --bg:#0a0f1a; --panel:#111827; --panel2:#0d1420; --accent:#61e7c7; --accent2:#54bce7; --text:#e8f0fa; --muted:#8fa3bd; --border:#1e2a3d; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); overflow:hidden; }
+  #viewport { position:fixed; inset:0; }
+  #viewport canvas { display:block; }
+
+  .panel { position:fixed; background:rgba(17,24,39,.92); backdrop-filter:blur(12px); border:1px solid var(--border); border-radius:14px; padding:14px; z-index:10; }
+  .panel h3 { margin:0 0 10px; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); }
+  .panel h4 { margin:12px 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+
+  #topbar { top:12px; left:50%; transform:translateX(-50%); display:flex; gap:8px; align-items:center; padding:10px 16px; }
+  #topbar .logo { font-weight:800; font-size:15px; color:var(--accent); }
+  #topbar .sub { font-size:11px; color:var(--muted); }
+
+  #toolbar { top:70px; left:12px; width:52px; display:flex; flex-direction:column; gap:6px; padding:10px 8px; }
+  #toolbar button { width:36px; height:36px; border-radius:9px; border:1px solid var(--border); background:var(--panel2); color:var(--text); font-size:17px; cursor:pointer; display:grid; place-items:center; }
+  #toolbar button:hover { border-color:var(--accent); }
+  #toolbar button.active { background:var(--accent); color:#061016; border-color:var(--accent); }
+  #toolbar .sep { height:1px; background:var(--border); margin:4px 2px; }
+
+  #layersPanel { top:70px; right:12px; width:250px; max-height:calc(100vh - 220px); overflow-y:auto; }
+  .layer-item { display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; cursor:pointer; font-size:13px; }
+  .layer-item:hover { background:rgba(97,231,199,.08); }
+  .layer-item.active { background:rgba(97,231,199,.14); border:1px solid rgba(97,231,199,.35); }
+  .layer-swatch { width:14px; height:14px; border-radius:4px; flex-shrink:0; }
+  .layer-item input[type=checkbox] { accent-color:var(--accent); }
+
+  #propsPanel { bottom:12px; left:12px; width:300px; max-height:40vh; overflow-y:auto; display:none; }
+  #propsPanel.show { display:block; }
+  .prop-row { display:flex; justify-content:space-between; padding:5px 0; font-size:13px; border-bottom:1px solid var(--border); }
+  .prop-row .k { color:var(--muted); } .prop-row .v { font-weight:600; }
+
+  #timeline { bottom:12px; left:50%; transform:translateX(-50%); width:min(560px,90vw); display:flex; align-items:center; gap:10px; padding:10px 16px; }
+  #timeline input[type=range] { flex:1; accent-color:var(--accent); }
+  #timeline .date { font-size:12px; color:var(--muted); min-width:110px; text-align:center; }
+  #timeline button { background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 12px; cursor:pointer; }
+  #timeline button:hover { border-color:var(--accent); }
+
+  #stats { top:70px; left:76px; font-size:11px; color:var(--muted); padding:8px 12px; }
+  #stats b { color:var(--text); }
+
+  #help { bottom:12px; right:12px; font-size:11px; color:var(--muted); padding:8px 12px; max-width:230px; }
+  #help kbd { background:var(--panel2); border:1px solid var(--border); border-radius:4px; padding:1px 5px; font-size:10px; }
+
+  .btn { background:var(--accent); color:#061016; border:0; border-radius:8px; padding:8px 14px; font-weight:700; cursor:pointer; font-size:13px; }
+  .btn:hover { opacity:.9; }
+  .btn.ghost { background:var(--panel2); color:var(--text); border:1px solid var(--border); }
+
+  #loading { position:fixed; inset:0; background:var(--bg); z-index:100; display:grid; place-items:center; }
+  #loading .box { text-align:center; }
+  #loading .spin { font-size:40px; animation:spin 1.5s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  #loading p { color:var(--muted); font-size:13px; }
+  #loading .bar { width:280px; height:6px; background:#1e293b; border-radius:3px; margin:16px auto 0; overflow:hidden; }
+  #loading .bar>div { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); width:0%; transition:width .3s; }
+
+  select, input[type=number] { background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:7px; padding:6px 8px; font-size:12px; width:100%; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .note { font-size:11px; color:var(--muted); line-height:1.5; }
 </style>
-<script type="importmap">
-{ "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-} }
-</script>
 </head>
 <body>
-<div id="scene"></div>
+<div id="viewport"></div>
 
-<header>
-  <h1>🌍 Lupus Cortex <span>3D Digital Twin</span> — Central Bangladesh · 2025</h1>
-  <p id="srcLine">Loading data sources…</p>
-  <div id="caveats"></div>
-</header>
-
-<div id="err"></div>
-
-<div class="panel" id="controls">
-  <h2>Layers</h2>
-  <select id="layerSel"></select>
-  <label class="row" id="predRow"><input type="checkbox" id="predToggle"> Show RF model prediction</label>
-  <h2 style="margin-top:10px">Overlays</h2>
-  <label class="row"><input type="checkbox" id="tglStations" checked> Air-quality stations</label>
-  <label class="row"><input type="checkbox" id="tglGrid" checked> 20-pt ERA5 grid</label>
-  <label class="row"><input type="checkbox" id="tglTerrain" checked> Terrain (5 DEM pts, ×25)</label>
-  <label class="row"><input type="checkbox" id="tglPop"> Population (WorldPop 2020)</label>
+<div id="loading">
+  <div class="box">
+    <div class="spin">🌍</div>
+    <h2 style="color:var(--accent)">Lupus Cortex 3D Twin Studio</h2>
+    <p id="loadMsg">Loading real data…</p>
+    <div class="bar"><div id="loadBar"></div></div>
+  </div>
 </div>
 
-<div class="panel" id="infoPanel">
-  <button id="closeInfo">✕</button>
-  <h2>Selected</h2>
-  <div id="infoBody"></div>
+<div id="topbar" class="panel">
+  <span class="logo">🏙️ Lupus Cortex</span>
+  <span class="sub">3D Digital Twin Studio — Central Bangladesh</span>
 </div>
 
-<div class="panel" id="legend">
-  <h2>Legend</h2>
-  <div id="legendLabel">PM2.5 — observed</div>
-  <div class="grad"></div>
-  <div class="scale"><span id="legendMin">–</span><span id="legendMax">–</span></div>
+<div id="toolbar" class="panel">
+  <button id="toolSelect" class="active" title="Select (V)">👆</button>
+  <button id="toolMeasure" title="Measure distance (M)">📏</button>
+  <button id="toolAdd" title="Add building (B)">🏢</button>
+  <button id="toolDelete" title="Delete selected (Del)">🗑️</button>
+  <div class="sep"></div>
+  <button id="viewTop" title="Top view (1)">⬒</button>
+  <button id="viewIso" title="Isometric (2)">◈</button>
+  <button id="viewStreet" title="Street level (3)">🚶</button>
+  <div class="sep"></div>
+  <button id="btnShot" title="Screenshot (P)">📷</button>
+  <button id="btnHelp" title="Help (H)">❓</button>
 </div>
 
-<div class="panel" id="timebar">
-  <button id="playBtn">▶ Play year</button>
-  <input type="range" id="daySlider" min="0" max="364" value="0" step="1">
-  <span id="dateLabel">2025-01-01</span>
+<div id="layersPanel" class="panel">
+  <h3>Data Layers</h3>
+  <div id="layerList"></div>
+  <h4>Scene</h4>
+  <div class="layer-item"><input type="checkbox" id="chkBuildings" checked><span>🏢 Buildings</span></div>
+  <div class="layer-item"><input type="checkbox" id="chkTerrain" checked><span>⛰️ Terrain (DEM)</span></div>
+  <div class="layer-item"><input type="checkbox" id="chkStations" checked><span>📡 Air stations</span></div>
+  <div class="layer-item"><input type="checkbox" id="chkGrid" checked><span>🔲 Data grid</span></div>
+  <div class="layer-item"><input type="checkbox" id="chkPop" checked><span>👥 Population</span></div>
+  <h4>Display</h4>
+  <div class="row2">
+    <div><label class="note">Sun time</label><input type="range" id="sunTime" min="0" max="24" step="0.5" value="12" style="width:100%"></div>
+    <div><label class="note">Exaggeration</label><input type="number" id="vertExag" value="25" min="1" max="100"></div>
+  </div>
+  <p class="note" style="margin-top:10px">Buildings are procedurally modeled from WorldPop density + OSM footprints where available. Terrain from Copernicus DEM.</p>
 </div>
 
-<div id="hint">Drag to rotate · scroll to zoom · right-drag to pan · click a station / grid point</div>
+<div id="propsPanel" class="panel">
+  <h3 id="propsTitle">Selection</h3>
+  <div id="propsBody"></div>
+  <div id="propsActions" style="margin-top:10px; display:flex; gap:8px;"></div>
+</div>
 
+<div id="timeline" class="panel">
+  <button id="btnPlay">▶️</button>
+  <input type="range" id="daySlider" min="0" max="364" value="0">
+  <span class="date" id="dateLabel">2025-01-01</span>
+</div>
+
+<div id="stats" class="panel"><span id="statText">—</span></div>
+
+<div id="help" class="panel" style="display:none">
+  <h3>Shortcuts</h3>
+  <p><kbd>V</kbd> select · <kbd>M</kbd> measure · <kbd>B</kbd> add building · <kbd>Del</kbd> delete<br>
+  <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> camera views · <kbd>P</kbd> screenshot<br>
+  <kbd>←</kbd><kbd>→</kbd> step day · <kbd>Space</kbd> play/pause</p>
+  <p class="note">Click buildings/stations for details. Drag to orbit, scroll to zoom, right-drag to pan.</p>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
 <script type="module" src="twin.js"></script>
 </body>
 </html>
