@@ -144,9 +144,11 @@ function show(d) {
   tb.innerHTML = "";
   for (const [k, c] of Object.entries(d.components)) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td><b>${k.toUpperCase()}</b></td>
+    const compName = c.name || k.toUpperCase();
+    const reliability = c.reliability ? ` <small title="Test R² = ${c.test_r2}">(${c.reliability})</small>` : "";
+    tr.innerHTML = `<td><b>${compName}</b>${reliability}</td>
       <td>${c.predicted_value} ${c.unit}</td>
-      <td>${c.guideline_value} ${c.unit} (${c.guideline_org})</td>
+      <td>${c.guideline_value ? c.guideline_value + " " + c.unit + " (" + c.guideline_org + ")" : "—"}</td>
       <td><span class="badge ${BADGE[c.condition_label]||"unknown"}">${c.condition_label}</span></td>`;
     tb.appendChild(tr);
   }
