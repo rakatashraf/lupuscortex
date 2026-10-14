@@ -4582,3 +4582,19 @@ main, header, footer { position: relative; z-index: 1; }
 @media (max-width: 620px) {
   .indices-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
 }
+
+/* ===== Dashboard Rich Report Sections ===== */
+.dashboard-report { margin-top: 24px; display: flex; flex-direction: column; gap: 20px; }
+.report-section { background: rgba(13, 20, 38, 0.85); border: 1px solid rgba(56, 189, 248, 0.18); border-radius: 14px; padding: 18px 20px; }
+.report-section h3 { margin: 0 0 12px; font-size: 17px; color: #e2e8f0; }
+.report-section.warnings { border-color: rgba(248, 113, 113, 0.4); }
+.suggestion { background: rgba(56, 189, 248, 0.08); border-left: 3px solid #38bdf8; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 8px; color: #cbd5e1; font-size: 14px; }
+.warning { background: rgba(248, 113, 113, 0.1); border-left: 3px solid #f87171; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 8px; color: #fecaca; font-size: 14px; }
+.prediction { margin-bottom: 12px; }
+.prediction h4 { margin: 0 0 6px; font-size: 14px; color: #38bdf8; }
+.prediction p { margin: 0; color: #cbd5e1; font-size: 14px; line-height: 1.6; }
+.action-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.action-card { background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 10px; padding: 12px 14px; }
+.action-card p { margin: 6px 0; color: #e2e8f0; font-size: 13.5px; line-height: 1.5; }
+.action-card small { color: #94a3b8; font-size: 12px; line-height: 1.5; display: block; }
+.action-when { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8; }
