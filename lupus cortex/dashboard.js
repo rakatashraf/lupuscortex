@@ -90,30 +90,173 @@ function initDashboard() {
 
 async function fetchUrbanHealthData() {
   const { lat, lng } = appState.currentLocation;
-  
+
   try {
     appState.isLoading = true;
     updateLoadingState(true);
-    
-    const analysisState = window.CortexAnalysis?.snapshot?.();
-    if (analysisState?.status === 'ready' && analysisState.analysis) {
-      if (analysisState.analysis.extraction) {
-        renderDashboardFromExtraction(analysisState.analysis.extraction, analysisState.analysis.location);
-      } else {
-        renderDashboardFromAnalysis(analysisState.analysis);
-      }
+
+    // Try the rich dashboard endpoint directly (model API v2.1+)
+    const dashboardReport = await fetchDashboardReport(lat, lng);
+    if (dashboardReport) {
+      renderDashboardReport(dashboardReport);
     } else {
-      renderDashboardUnavailable(analysisState?.status === 'awaiting_model');
-      window.CortexAnalysis?.request?.(appState.currentLocation);
+      // Fallback to the legacy analysis flow
+      const analysisState = window.CortexAnalysis?.snapshot?.();
+      if (analysisState?.status === 'ready' && analysisState.analysis) {
+        if (analysisState.analysis.extraction) {
+          renderDashboardFromExtraction(analysisState.analysis.extraction, analysisState.analysis.location);
+        } else {
+          renderDashboardFromAnalysis(analysisState.analysis);
+        }
+      } else {
+        renderDashboardUnavailable(analysisState?.status === 'awaiting_model');
+        window.CortexAnalysis?.request?.(appState.currentLocation);
+      }
     }
     appState.isLoading = false;
     updateLoadingState(false);
-    
+
   } catch (error) {
     console.error('❌ Error fetching health data:', error);
     appState.isLoading = false;
     updateLoadingState(false);
   }
+}
+
+// Fetch the full dashboard report from the model API
+async function fetchDashboardReport(lat, lng) {
+  const apiBase = (window.CortexAnalysis?.apiBase?.() ||
+                   document.getElementById('api_url')?.value ||
+                   'http://127.0.0.1:8100').replace(/\/$/, '');
+  try {
+    const res = await fetch(apiBase + '/api/dashboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lat: Number(lat), lon: Number(lng),
+        name: appState.currentLocation?.name || 'Selected location',
+        date: new Date().toISOString().slice(0, 10),
+      }),
+    });
+    if (!res.ok) {
+      console.warn('Dashboard API unavailable:', res.status);
+      return null;
+    }
+    return await res.json();
+  } catch (e) {
+    console.warn('Dashboard API unreachable:', e.message);
+    return null;
+  }
+}
+
+// Render the full dashboard report: scores, indices, suggestions, interventions, predictions, warnings
+function renderDashboardReport(report) {
+  const indices = report.indices || {};
+  const validIndices = Object.values(indices).filter(i => Number.isFinite(Number(i.score)));
+
+  // Overall + HWI scores
+  const scoreEl = document.getElementById('overallScore');
+  const statusEl = document.getElementById('scoreStatus');
+  if (scoreEl) scoreEl.textContent = report.overall_score ?? '—';
+  if (statusEl) statusEl.textContent = report.overall_label
+    ? `${report.overall_label} · Coverage: ${report.data_quality?.coverage_pct ?? '—'}%`
+    : 'Data unavailable';
+
+  const hwiScoreEl = document.getElementById('hwiScore');
+  const hwiStatusEl = document.getElementById('hwiStatus');
+  if (hwiScoreEl) hwiScoreEl.textContent = report.hwi?.score ?? '—';
+  if (hwiStatusEl) hwiStatusEl.textContent = report.hwi?.label || 'Data unavailable';
+
+  // Index cards
+  renderIndicesGrid(indices);
+
+  // Charts
+  renderCharts(indices);
+
+  // Rich report sections
+  renderReportSections(report);
+
+  appState.healthData = {
+    indices, overall_score: report.overall_score,
+    location: report.location, timestamp: report.time?.generated_utc,
+    data_quality: report.data_quality, hwi: report.hwi, report,
+  };
+}
+
+// Render suggestions, interventions, predictions, warnings
+function renderReportSections(report) {
+  let container = document.getElementById('dashboardReport');
+  if (!container) {
+    // Create the report container after the charts section
+    const chartsSection = document.querySelector('.dashboard-charts') ||
+                          document.getElementById('indicesGrid')?.parentElement;
+    if (!chartsSection) return;
+    container = document.createElement('div');
+    container.id = 'dashboardReport';
+    container.className = 'dashboard-report';
+    chartsSection.after(container);
+  }
+
+  const { suggestions = [], interventions = {}, warnings = [], predictions = {} } = report;
+
+  const interventionHtml = (title, items) => {
+    if (!items?.length) return '';
+    return `<div class="intervention-group"><h4>${title}</h4>` +
+      items.map(it => `<div class="intervention-item">
+        <div class="intervention-timeline">
+          <span class="timeline-badge short">Short-term</span>
+          <span class="timeline-badge long">Long-term</span>
+        </div>
+      </div>`).join('') + `</div>`;
+  };
+
+  const govHtml = [...(interventions.government?.short_term || []).map(i =>
+    `<div class="action-card"><span class="action-when">Short-term · Government</span>
+     <p>${i.action}</p><small>🌍 Example: ${i.example}</small></div>`),
+    ...(interventions.government?.long_term || []).map(i =>
+    `<div class="action-card"><span class="action-when">Long-term · Government</span>
+     <p>${i.action}</p><small>🌍 Example: ${i.example}</small></div>`)].join('');
+
+  const indHtml = [...(interventions.industrial?.short_term || []).map(i =>
+    `<div class="action-card"><span class="action-when">Short-term · Industrial</span>
+     <p>${i.action}</p><small>🌍 Example: ${i.example}</small></div>`),
+    ...(interventions.industrial?.long_term || []).map(i =>
+    `<div class="action-card"><span class="action-when">Long-term · Industrial</span>
+     <p>${i.action}</p><small>🌍 Example: ${i.example}</small></div>`)].join('');
+
+  const perHtml = [...(interventions.individual?.short_term || []).map(i =>
+    `<div class="action-card"><span class="action-when">Short-term · Individual</span>
+     <p>${i.action}</p><small>🌍 Example: ${i.example}</small></div>`),
+    ...(interventions.individual?.long_term || []).map(i =>
+    `<div class="action-card"><span class="action-when">Long-term · Individual</span>
+     <p>${i.action}</p><small>🌍 Example: ${i.example}</small></div>`)].join('');
+
+  container.innerHTML = `
+    <section class="report-section">
+      <h3>📋 Recommendations</h3>
+      <div class="suggestions">${suggestions.map(s => `<div class="suggestion">💡 ${s}</div>`).join('') || '<p>No suggestions.</p>'}</div>
+    </section>
+    ${warnings.length ? `<section class="report-section warnings">
+      <h3>⚠️ Warnings</h3>
+      ${warnings.map(w => `<div class="warning">${w}</div>`).join('')}
+    </section>` : ''}
+    <section class="report-section">
+      <h3>🔮 Predictions</h3>
+      <div class="prediction"><h4>Human Wellbeing</h4><p>${predictions.human_wellbeing || '—'}</p></div>
+      <div class="prediction"><h4>Biodiversity</h4><p>${predictions.biodiversity || '—'}</p></div>
+    </section>
+    <section class="report-section">
+      <h3>🏛️ Government Interventions</h3>
+      <div class="action-grid">${govHtml}</div>
+    </section>
+    <section class="report-section">
+      <h3>🏭 Industrial Interventions</h3>
+      <div class="action-grid">${indHtml}</div>
+    </section>
+    <section class="report-section">
+      <h3>🧑 Individual Actions</h3>
+      <div class="action-grid">${perHtml}</div>
+    </section>`;
 }
 
 function renderDashboard(data) {
